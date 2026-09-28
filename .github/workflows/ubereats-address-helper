@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UberEats 地址助手 - APK 構建與完整專案開發工作站</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif; background-color: #0d1117; color: #c9d1d9; }
+        .code-font { font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace; }
+        .tab-active { background-color: #1f2937; border-bottom: 2px solid #10b981; color: #10b981; font-weight: bold; }
+        .file-active { background-color: #21262d; border-left: 3px solid #10b981; color: #34d399; font-weight: bold; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #161b22; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#0d1117]">
+
+    <!-- 頂部導覽 Header -->
+    <header class="bg-[#161b22] border-b border-[#30363d] px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <div class="flex items-center gap-3">
+                <span class="bg-emerald-500/20 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-bold border border-emerald-500/30 flex items-center gap-1.5">
+                    <i class="fab fa-android text-sm"></i> APK 打包與建置專區
+                </span>
+                <h1 class="text-xl font-black text-white flex items-center gap-2">
+                    UberEats 地址助手 — Android 原生 APK 編譯工作站
+                </h1>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">包含所有 Gradle 配置、XML 佈局、Kotlin 原始碼與 GitHub Actions 免電腦雲端打包腳本</p>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <button onclick="switchTab('github-actions')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+                <i class="fab fa-github"></i> 雲端免電腦編譯 APK (極速)
+            </button>
+            <button onclick="copyCurrentCode()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3.5 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+                <i class="fas fa-copy"></i> 複製當前檔案程式碼
+            </button>
+        </div>
+    </header>
+
+    <!-- 頂部頁籤列 -->
+    <div class="bg-[#161b22] border-b border-[#30363d] px-6 flex space-x-2 text-xs overflow-x-auto">
+        <button id="tab-btn-code" onclick="switchTab('code')" class="px-4 py-3 tab-active transition flex items-center gap-2 shrink-0">
+            <i class="fas fa-code text-emerald-400"></i> 1. 完整專案原始碼庫 (All Files)
+        </button>
+        <button id="tab-btn-github-actions" onclick="switchTab('github-actions')" class="px-4 py-3 text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0">
+            <i class="fab fa-github text-indigo-400"></i> 2. GitHub Actions 雲端一鍵生成 APK
+        </button>
+        <button id="tab-btn-studio" onclick="switchTab('studio')" class="px-4 py-3 text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0">
+            <i class="fas fa-laptop-code text-amber-400"></i> 3. Android Studio 本地打包教學
+        </button>
+        <button id="tab-btn-install" onclick="switchTab('install')" class="px-4 py-3 text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0">
+            <i class="fas fa-mobile-screen-button text-blue-400"></i> 4. 手機安裝與權限設定步驟
+        </button>
+    </div>
+
+    <!-- 主要分頁容器 -->
+    <main class="flex-1 flex overflow-hidden relative">
+
+        <!-- TAB 1: 專案程式碼與組態檔 -->
+        <div id="tab-content-code" class="w-full flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <!-- 左側專案目錄 (Tree) -->
+            <aside class="w-full lg:w-80 bg-[#161b22] border-r border-[#30363d] p-4 flex flex-col gap-3 shrink-0 overflow-y-auto">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fas fa-folder-open text-amber-400"></i> 專案目錄結構
+                </div>
+                
+                <div class="space-y-1 code-font text-xs">
+                    <!-- GitHub Workflow -->
+                    <div class="text-[10px] font-bold text-indigo-400 pt-1 pb-1 uppercase tracking-wider">Cloud CI/CD</div>
+                    <button onclick="switchFile('github_workflow')" id="file-github_workflow" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fab fa-github text-indigo-400"></i> build-apk.yml
+                        </span>
+                        <span class="text-[9px] bg-indigo-900/60 text-indigo-300 px-1.5 py-0.5 rounded font-bold">自動編譯</span>
+                    </button>
+
+                    <!-- Gradle Build configs -->
+                    <div class="text-[10px] font-bold text-emerald-400 pt-2 pb-1 uppercase tracking-wider">Gradle Build Configurations</div>
+                    <button onclick="switchFile('build_gradle_project')" id="file-build_gradle_project" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fas fa-[#e0234e] fa-cubes text-red-400"></i> build.gradle.kts (Project)
+                        </span>
+                    </button>
+
+                    <button onclick="switchFile('build_gradle_app')" id="file-build_gradle_app" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fas fa-cube text-amber-400"></i> app/build.gradle.kts
+                        </span>
+                        <span class="text-[9px] bg-amber-900/60 text-amber-300 px-1.5 py-0.5 rounded font-bold">依賴庫</span>
+                    </button>
+
+                    <!-- Android Manifest & Config -->
+                    <div class="text-[10px] font-bold text-slate-400 pt-2 pb-1 uppercase tracking-wider">Manifest & System Specs</div>
+                    <button onclick="switchFile('manifest')" id="file-manifest" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fas fa-file-code text-emerald-400"></i> AndroidManifest.xml
+                        </span>
+                    </button>
+
+                    <button onclick="switchFile('accessibility_config')" id="file-accessibility_config" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fas fa-sliders text-blue-400"></i> accessibility_service.xml
+                        </span>
+                    </button>
+
+                    <!-- Core Kotlin Code -->
+                    <div class="text-[10px] font-bold text-purple-400 pt-2 pb-1 uppercase tracking-wider">Kotlin Source Code</div>
+                    <button onclick="switchFile('service_accessibility')" id="file-service_accessibility" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300 file-active">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fab fa-java text-purple-400"></i> UberAccessibilityService.kt
+                        </span>
+                    </button>
+
+                    <button onclick="switchFile('service_overlay')" id="file-service_overlay" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fab fa-java text-blue-400"></i> FloatingOverlayService.kt
+                        </span>
+                    </button>
+
+                    <button onclick="switchFile('room_db')" id="file-room_db" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fas fa-database text-emerald-400"></i> AppDatabase.kt
+                        </span>
+                    </button>
+
+                    <button onclick="switchFile('main_activity')" id="file-main_activity" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fab fa-java text-indigo-400"></i> MainActivity.kt
+                        </span>
+                    </button>
+
+                    <!-- Layout XML -->
+                    <div class="text-[10px] font-bold text-pink-400 pt-2 pb-1 uppercase tracking-wider">Layout XML Resources</div>
+                    <button onclick="switchFile('layout_floating')" id="file-layout_floating" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fas fa-layer-group text-pink-400"></i> layout_floating_badge.xml
+                        </span>
+                    </button>
+
+                    <button onclick="switchFile('layout_main')" id="file-layout_main" class="w-full text-left px-3 py-2 rounded-lg hover:bg-[#21262d] transition flex items-center justify-between text-slate-300">
+                        <span class="flex items-center gap-2 truncate">
+                            <i class="fas fa-[#e0234e] fa-window-maximize text-slate-400"></i> activity_main.xml
+                        </span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- 右側程式碼檢視區 -->
+            <section class="flex-1 flex flex-col bg-[#0d1117] overflow-hidden">
+                <div class="bg-[#161b22] border-b border-[#30363d] px-6 py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span id="current-filename" class="font-bold text-emerald-400 code-font">UberAccessibilityService.kt</span>
+                        <span id="current-filepath" class="text-slate-500 hidden sm:inline text-[11px]">app/src/main/java/com/ubereats/helper/service/UberAccessibilityService.kt</span>
+                    </div>
+                    <div id="copy-toast" class="text-emerald-400 text-xs opacity-0 transition-opacity font-bold flex items-center gap-1">
+                        <i class="fas fa-check"></i> 已複製至剪貼簿！
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-4 bg-[#0d1117]">
+                    <pre class="m-0"><code id="code-content" class="code-font text-xs sm:text-sm text-slate-200 leading-relaxed block whitespace-pre overflow-x-auto">
+// 載入程式碼中...
+                    </code></pre>
+                </div>
+
+                <footer class="bg-[#161b22] border-t border-[#30363d] p-4 text-xs">
+                    <div class="flex items-center gap-2 mb-1 font-bold text-slate-200">
+                        <i class="fas fa-circle-info text-emerald-400"></i>
+                        <span id="guide-title">檔案用途說明</span>
+                    </div>
+                    <div id="guide-content" class="text-slate-400 text-[11px] leading-relaxed">
+                        --
+                    </div>
+                </footer>
+            </section>
+        </div>
+
+        <!-- TAB 2: GitHub Actions 雲端免電腦編譯 APK -->
+        <div id="tab-content-github-actions" class="w-full flex-1 p-6 overflow-y-auto hidden">
+            <div class="max-w-4xl mx-auto space-y-6">
+                
+                <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-6 relative overflow-hidden">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-indigo-600/30 rounded-2xl border border-indigo-500/50 flex items-center justify-center text-indigo-400 text-2xl shrink-0">
+                            <i class="fab fa-github"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-white">不用安裝 Android Studio，用 GitHub 雲端編譯出 APK！</h2>
+                            <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                                如果你的電腦沒有安裝 Android Studio 或配備較低，只要利用 GitHub 免費提供的 Actions 服務，把程式碼推上 GitHub Repository，雲端伺服器就會自動打包出可安裝的 <code class="text-indigo-300 bg-indigo-900/50 px-1 rounded">app-debug.apk</code> 供你下載至手機！
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 步驟引導 -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fas fa-list-check text-emerald-400"></i> 雲端編譯 4 步驟教學：
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-[#161b22] p-4 rounded-xl border border-[#30363d] space-y-2">
+                            <div class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                                <span class="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-[10px]">1</span>
+                                建立 GitHub 儲存庫 (Repo)
+                            </div>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                前往 GitHub.com 新建一個 Private 或 Public 儲存庫，例如命名為 <code class="text-slate-200 bg-slate-800 px-1">ubereats-address-helper</code>。
+                            </p>
+                        </div>
+
+                        <div class="bg-[#161b22] p-4 rounded-xl border border-[#30363d] space-y-2">
+                            <div class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                                <span class="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-[10px]">2</span>
+                                放入專案檔案與 Actions 腳本
+                            </div>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                將本站「專案原始碼庫」頁面的所有檔案依據路徑上傳，並務必包含 <code class="text-slate-200 bg-slate-800 px-1">.github/workflows/build-apk.yml</code>。
+                            </p>
+                        </div>
+
+                        <div class="bg-[#161b22] p-4 rounded-xl border border-[#30363d] space-y-2">
+                            <div class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                                <span class="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-[10px]">3</span>
+                                觸發 Actions 自動打包
+                            </div>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                點擊 GitHub 頁面上方的 <strong class="text-white">Actions</strong> 頁籤，選擇 <strong class="text-white">Build Android APK</strong> 並點選 <strong class="text-emerald-400">Run workflow</strong>。
+                            </p>
+                        </div>
+
+                        <div class="bg-[#161b22] p-4 rounded-xl border border-[#30363d] space-y-2">
+                            <div class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                                <span class="w-5 h-5 bg-emerald-500/20 rounded-full flex items-center justify-center text-[10px]">4</span>
+                                下載 APK 至手機安裝
+                            </div>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                大約 2~3 分鐘編譯完成後，在 Actions 頁面最下方即可下載 <strong class="text-amber-300">UberEats-Helper-APK.zip</strong>，解壓縮後即為可安裝的 APK！
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GitHub Workflow Code Preview snippet -->
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-slate-300">Actions 腳本 Preview (.github/workflows/build-apk.yml)</span>
+                        <button onclick="switchFileAndTab('github_workflow')" class="text-xs text-indigo-400 hover:text-indigo-300 font-bold">
+                            查看完整程式碼 <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                    <pre class="bg-[#0d1117] p-3 rounded-lg text-[11px] code-font text-slate-300 overflow-x-auto">
+name: Build Android APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: UberEats-Helper-APK
+          path: app/build/outputs/apk/debug/app-debug.apk</pre>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB 3: Android Studio 本地編譯教學 -->
+        <div id="tab-content-studio" class="w-full flex-1 p-6 overflow-y-auto hidden">
+            <div class="max-w-4xl mx-auto space-y-6">
+                
+                <div class="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-6 flex items-start gap-4">
+                    <div class="w-12 h-12 bg-amber-500/20 rounded-2xl border border-amber-500/40 flex items-center justify-center text-amber-400 text-2xl shrink-0">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">使用 Android Studio 本地生成與簽署 APK</h2>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                            如果你電腦已有安裝 Android Studio，可依照下方指引建立 New Project 並貼上原始碼即可本機生成 `.apk` 檔。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs text-slate-300">
+                    <div class="bg-[#161b22] p-5 rounded-xl border border-[#30363d] space-y-3">
+                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fas fa-folder-plus text-amber-400"></i> Step 1: 建立專案
+                        </h3>
+                        <p class="leading-relaxed">
+                            1. 打開 Android Studio 點選 <strong class="text-white">New Project</strong>。<br>
+                            2. 選擇 <strong class="text-emerald-400">Empty Views Activity</strong>，點擊 Next。<br>
+                            3. Name 輸入：<code class="text-amber-300 bg-slate-800 px-1">UberEatsHelper</code><br>
+                            4. Package name 輸入：<code class="text-amber-300 bg-slate-800 px-1">com.ubereats.helper</code><br>
+                            5. Language 選擇：<strong class="text-purple-400">Kotlin</strong><br>
+                            6. Minimum SDK 選擇：<strong class="text-blue-400">API 26 (Android 8.0)</strong> 以上。
+                        </p>
+                    </div>
+
+                    <div class="bg-[#161b22] p-5 rounded-xl border border-[#30363d] space-y-3">
+                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fas fa-paste text-indigo-400"></i> Step 2: 貼上對應程式碼
+                        </h3>
+                        <p class="leading-relaxed">
+                            對照左側選單的檔名與路徑，將檔案依序取代或新增到你的 Android Studio 專案中。<br>
+                            特別注意 <code class="text-slate-200">app/build.gradle.kts</code> 需引入 Room 與 Accessibility 依賴，完成後點擊右上方 <strong class="text-emerald-400">Sync Now</strong>。
+                        </p>
+                    </div>
+
+                    <div class="bg-[#161b22] p-5 rounded-xl border border-[#30363d] space-y-3">
+                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fas fa-hammer text-emerald-400"></i> Step 3: 編譯生成 APK 檔案
+                        </h3>
+                        <p class="leading-relaxed">
+                            1. 點擊頂部功能表 <strong class="text-white">Build ➔ Build Bundle(s) / APK(s) ➔ Build APK(s)</strong>。<br>
+                            2. 等待右下角提示 <code class="text-emerald-400">APK(s) generated successfully</code>。<br>
+                            3. 點擊提示中的 <strong class="text-white font-bold underline">locate</strong> 即可開啟檔案總管拿到 <code class="text-amber-300 font-mono">app-debug.apk</code>！
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- TAB 4: 手機安裝與權限設定步驟 -->
+        <div id="tab-content-install" class="w-full flex-1 p-6 overflow-y-auto hidden">
+            <div class="max-w-4xl mx-auto space-y-6">
+                
+                <div class="bg-blue-950/30 border border-blue-500/30 rounded-2xl p-6 flex items-start gap-4">
+                    <div class="w-12 h-12 bg-blue-500/20 rounded-2xl border border-blue-500/40 flex items-center justify-center text-blue-400 text-2xl shrink-0">
+                        <i class="fas fa-mobile-screen"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">APK 下載至手機後的關鍵 2 大權限啟用指引</h2>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                            由於此 App 屬於輔助自動化工具，安裝至 Android 手機後需手動開啟「顯示在其他應用程式上」與「無障礙服務」兩大權限。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                    <div class="bg-[#161b22] p-5 rounded-xl border border-[#30363d] space-y-3">
+                        <div class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                            <i class="fas fa-layer-group"></i> 1. 開啟「顯示在其他應用程式上」(Overlay)
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            開啟 APP 後，系統會自動跳出提示請求權限。點擊允許，並在列表中找到 <strong class="text-white">UberEats 地址助手</strong> 開啟開關。這能確保懸浮卡片可顯示在 Uber Eats 畫面上方。
+                        </p>
+                    </div>
+
+                    <div class="bg-[#161b22] p-5 rounded-xl border border-[#30363d] space-y-3">
+                        <div class="text-sm font-bold text-purple-400 flex items-center gap-2">
+                            <i class="fas fa-universal-access"></i> 2. 啟用「無障礙服務」(Accessibility)
+                        </div>
+                        <p class="text-slate-300 leading-relaxed">
+                            前往手機 <strong class="text-white">設定 ➔ 無障礙 (Accessibility) ➔ 已安裝的服務</strong>，將 <strong class="text-white">UberEats 派單助手無障礙服務</strong> 開啟。這能讓助手自動識別派單訊息與點擊進入第二層。
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // 專案檔案清單與完整原始碼
+        const projectFiles = {
+            github_workflow: {
+                name: "build-apk.yml",
+                path: ".github/workflows/build-apk.yml",
+                guide: "GitHub Actions 雲端自動編譯工作流。只要 Push 程式碼到 GitHub，雲端會自動執行 Gradle 編譯出可安裝的 APK 檔案並提供下載。",
+                code: `name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradle
+      run: chmod +x gradlew
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: UberEats-Helper-APK
+        path: app/build/outputs/apk/debug/app-debug.apk`
+            },
+
+            build_gradle_project: {
+                name: "build.gradle.kts (Project)",
+                path: "build.gradle.kts",
+                guide: "根目錄 Gradle 插件設定檔。定義 Android Gradle Plugin 與 Kotlin 版本。",
+                code: `// Top-level build file where you can add configuration options common to all sub-projects/modules.
+plugins {
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.kotlin.android) apply false
+}`
+            },
+
+            build_gradle_app: {
+                name: "app/build.gradle.kts",
+                path: "app/build.gradle.kts",
+                guide: "App 模組構建檔。包含 Room 本地 SQLite 依賴庫、Kotlin 協程與 AndroidX UI 組件。",
+                code: `plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("kotlin-kapt")
+}
+
+android {
+    namespace = "com.ubereats.helper"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.ubereats.helper"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
+    // Room Database
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    kapt("androidx.room:room-compiler:$roomVersion")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+}`
+            },
+
+            manifest: {
+                name: "AndroidManifest.xml",
+                path: "app/src/main/AndroidManifest.xml",
+                guide: "Android 系統組態檔。宣告系統懸浮窗權限 (SYSTEM_ALERT_WINDOW) 與無障礙服務 (BIND_ACCESSIBILITY_SERVICE)。",
+                code: `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.ubereats.helper">
+
+    <!-- 懸浮窗權限 (可在 Uber Eats 畫面上繪製視窗) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 前台服務權限 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="UberEats 地址助手"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
+
+        <!-- 主頁面：設定與事後修正資料庫 -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 無障礙服務 (用來讀取 Uber Eats 派單內容並自動開啟第二層) -->
+        <service
+            android:name=".service.UberAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- 懸浮窗服務 -->
+        <service
+            android:name=".service.FloatingOverlayService"
+            android:enabled="true"
+            android:exported="false" />
+
+    </application>
+
+</manifest>`
+            },
+
+            accessibility_config: {
+                name: "accessibility_service_config.xml",
+                path: "app/src/main/res/xml/accessibility_service_config.xml",
+                guide: "無障礙服務綁定檔。限制僅對 Uber Eats 外送員端 App (com.ubereats.driver.app) 生效。",
+                code: `<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="true"
+    android:description="@string/accessibility_description"
+    android:packageNames="com.ubereats.driver.app" />`
+            },
+
+            service_accessibility: {
+                name: "UberAccessibilityService.kt",
+                path: "app/src/main/java/com/ubereats/helper/service/UberAccessibilityService.kt",
+                guide: "核心無障礙服務。自動尋找外送按鈕進入第二層，抓取送達地點與備註後發送廣播，並點擊完成返回。",
+                code: `package com.ubereats.helper.service
+
+import android.accessibilityservice.AccessibilityService
+import android.content.Intent
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
+
+class UberAccessibilityService : AccessibilityService() {
+
+    companion object {
+        private const val TAG = "UberAccessibility"
+        const val ACTION_ADDRESS_DETECTED = "com.ubereats.helper.ADDRESS_DETECTED"
+        const val EXTRA_ADDRESS = "extra_address"
+        const val EXTRA_FLOOR = "extra_floor"
+    }
+
+    private var isScanning = false
+
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (event == null) return
+
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED ||
+            event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+
+            val rootNode = rootInActiveWindow ?: return
+
+            // 1. 偵測畫面上是否有「外送」關鍵字按鈕
+            if (!isScanning) {
+                val deliveryNode = findNodeByText(rootNode, "外送")
+                if (deliveryNode != null && deliveryNode.isClickable) {
+                    startScanSequence(deliveryNode)
+                }
+            }
+        }
+    }
+
+    private fun startScanSequence(deliveryNode: AccessibilityNodeInfo) {
+        isScanning = true
+
+        // Step 1: 點擊「外送」按鈕進入第二層
+        deliveryNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+
+        // Step 2: 延遲 300ms 待第二層彈出後讀取
+        Handler(Looper.getMainLooper()).postDelayed({
+            val currentRoot = rootInActiveWindow
+            if (currentRoot != null) {
+                val addressText = extractAddress(currentRoot)
+                val floorNum = parseFloor(addressText)
+
+                Log.d(TAG, "成功擷取第二層地址: $addressText, 樓層: $floorNum")
+
+                // 發送廣播給懸浮窗
+                val intent = Intent(ACTION_ADDRESS_DETECTED).apply {
+                    putExtra(EXTRA_ADDRESS, addressText)
+                    putExtra(EXTRA_FLOOR, floorNum)
+                }
+                sendBroadcast(intent)
+
+                // Step 3: 延遲 200ms 後點擊「完成」按鈕回到第一層
+                Handler(Looper.getMainLooper()).postDelayed({
+                    val completeBtn = findNodeByText(currentRoot, "完成")
+                    completeBtn?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    isScanning = false
+                }, 200)
+            } else {
+                isScanning = false
+            }
+        }, 300)
+    }
+
+    private fun findNodeByText(node: AccessibilityNodeInfo?, target: String): AccessibilityNodeInfo? {
+        if (node == null) return null
+        if (node.text != null && node.text.toString().contains(target)) return node
+        for (i in 0 until node.childCount) {
+            val result = findNodeByText(node.getChild(i), target)
+            if (result != null) return result
+        }
+        return null
+    }
+
+    private fun extractAddress(root: AccessibilityNodeInfo): String {
+        val node = findNodeByText(root, "送達地點")
+        return node?.text?.toString() ?: "未知地點"
+    }
+
+    private fun parseFloor(text: String): String {
+        val numMatch = Regex("""(\\d+)\\s*樓""").find(text)
+        if (numMatch != null) return numMatch.groupValues[1]
+
+        val cnMatch = Regex("""([一二三四五六七八九十]+)\\s*樓""").find(text)
+        if (cnMatch != null) return cnMatch.groupValues[1]
+
+        return ""
+    }
+
+    override fun onInterrupt() {}
+}`
+            },
+
+            service_overlay: {
+                name: "FloatingOverlayService.kt",
+                path: "app/src/main/java/com/ubereats/helper/service/FloatingOverlayService.kt",
+                guide: "懸浮視窗服務。收到廣播時即時比對 Room SQLite 並繪製卡片於外送畫面上方。",
+                code: `package com.ubereats.helper.service
+
+import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.PixelFormat
+import android.os.IBinder
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.WindowManager
+import android.widget.TextView
+import com.ubereats.helper.R
+import com.ubereats.helper.database.AppDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class FloatingOverlayService : Service() {
+
+    private lateinit var windowManager: WindowManager
+    private lateinit var overlayView: View
+    private lateinit var tvStatus: TextView
+    private lateinit var tvAddress: TextView
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == UberAccessibilityService.ACTION_ADDRESS_DETECTED) {
+                val address = intent.getStringExtra(UberAccessibilityService.EXTRA_ADDRESS) ?: ""
+                val floor = intent.getStringExtra(UberAccessibilityService.EXTRA_FLOOR) ?: ""
+                updateOverlayUI(address, floor)
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        setupOverlay()
+
+        val filter = IntentFilter(UberAccessibilityService.ACTION_ADDRESS_DETECTED)
+        registerReceiver(receiver, filter)
+    }
+
+    private fun setupOverlay() {
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            y = 120
+        }
+
+        overlayView = LayoutInflater.from(this).inflate(R.layout.layout_floating_badge, null)
+        tvStatus = overlayView.findViewById(R.id.tv_status)
+        tvAddress = overlayView.findViewById(R.id.tv_address)
+
+        windowManager.addView(overlayView, params)
+    }
+
+    private fun updateOverlayUI(address: String, floor: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = AppDatabase.getDatabase(applicationContext)
+            val record = db.addressDao().findByAddress(address)
+
+            CoroutineScope(Dispatchers.Main).launch {
+                tvAddress.text = address
+                if (record != null) {
+                    tvStatus.text = "\${record.floor}F \${record.type} (已記憶)"
+                } else {
+                    if (address.contains("醫院")) {
+                        tvStatus.text = "\${floor}F 醫院/醫療場所"
+                    } else {
+                        tvStatus.text = "\${floor}F 樓梯/電梯大樓"
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::overlayView.isInitialized) windowManager.removeView(overlayView)
+        unregisterReceiver(receiver)
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+}`
+            },
+
+            room_db: {
+                name: "AppDatabase.kt",
+                path: "app/src/main/java/com/ubereats/helper/database/AppDatabase.kt",
+                guide: "Room ORM 資料庫定義。儲存歷史地址與糾錯標記。",
+                code: `package com.ubereats.helper.database
+
+import android.content.Context
+import androidx.room.*
+
+@Entity(tableName = "address_records")
+data class AddressRecord(
+    @PrimaryKey val addressKey: String,
+    @ColumnInfo(name = "building_type") val type: String,
+    @ColumnInfo(name = "floor") val floor: String,
+    @ColumnInfo(name = "note") val note: String?
+)
+
+@Dao
+interface AddressDao {
+    @Query("SELECT * FROM address_records WHERE addressKey = :address LIMIT 1")
+    suspend fun findByAddress(address: String): AddressRecord?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(record: AddressRecord)
+}
+
+@Database(entities = [AddressRecord::class], version = 1, exportSchema = false)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun addressDao(): AddressDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getDatabase(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "uber_address_db"
+                ).build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}`
+            },
+
+            main_activity: {
+                name: "MainActivity.kt",
+                path: "app/src/main/java/com/ubereats/helper/MainActivity.kt",
+                guide: "主介面邏輯。引導權限開啟與提供手動儲存地址糾錯庫功能。",
+                code: `package com.ubereats.helper
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.provider.Settings
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.ubereats.helper.database.AddressRecord
+import com.ubereats.helper.database.AppDatabase
+import com.ubereats.helper.service.FloatingOverlayService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        checkOverlayPermission()
+
+        findViewById<Button>(R.id.btn_save).setOnClickListener {
+            val addr = findViewById<EditText>(R.id.et_address).text.toString()
+            val floor = findViewById<EditText>(R.id.et_floor).text.toString()
+            if (addr.isNotEmpty()) {
+                saveData(addr, "stairs", floor)
+            }
+        }
+    }
+
+    private fun checkOverlayPermission() {
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
+        } else {
+            startService(Intent(this, FloatingOverlayService::class.java))
+        }
+    }
+
+    private fun saveData(address: String, type: String, floor: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = AppDatabase.getDatabase(applicationContext)
+            db.addressDao().insertOrUpdate(AddressRecord(address, type, floor, "手動記憶"))
+            CoroutineScope(Dispatchers.Main).launch {
+                Toast.makeText(this@MainActivity, "成功儲存記憶！", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+}`
+            },
+
+            layout_floating: {
+                name: "layout_floating_badge.xml",
+                path: "app/src/main/res/layout/layout_floating_badge.xml",
+                guide: "懸浮視窗的 XML 介面樣式。高對比深色卡片與動態狀態欄。",
+                code: `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#1E293B"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="偵測中..."
+        android:textColor="#10B981"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_address"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="等待 Uber Eats 派單廣播"
+        android:textColor="#94A3B8"
+        android:textSize="12sp" />
+
+</LinearLayout>`
+            },
+
+            layout_main: {
+                name: "activity_main.xml",
+                path: "app/src/main/res/layout/activity_main.xml",
+                guide: "主 UI 設定與糾錯介面。",
+                code: `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="UberEats 地址助手設定"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/et_address"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="輸入地址" />
+
+    <EditText
+        android:id="@+id/et_floor"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="輸入樓層" />
+
+    <Button
+        android:id="@+id/btn_save"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="儲存至本地記憶庫" />
+
+</LinearLayout>`
+            }
+        };
+
+        let currentFileKey = 'service_accessibility';
+
+        window.onload = () => {
+            switchFile('service_accessibility');
+        };
+
+        function switchFile(key) {
+            currentFileKey = key;
+            const file = projectFiles[key];
+
+            document.querySelectorAll('aside button').forEach(btn => btn.classList.remove('file-active'));
+            const activeBtn = document.getElementById(`file-${key}`);
+            if (activeBtn) activeBtn.classList.add('file-active');
+
+            document.getElementById('current-filename').innerText = file.name;
+            document.getElementById('current-filepath').innerText = file.path;
+            document.getElementById('code-content').innerText = file.code;
+
+            document.getElementById('guide-title').innerText = `${file.name} — 說明`;
+            document.getElementById('guide-content').innerText = file.guide;
+        }
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.getElementById('tab-content-code').classList.add('hidden');
+            document.getElementById('tab-content-github-actions').classList.add('hidden');
+            document.getElementById('tab-content-studio').classList.add('hidden');
+            document.getElementById('tab-content-install').classList.add('hidden');
+
+            // Deactivate all tab buttons
+            document.querySelectorAll('header + div button').forEach(btn => {
+                btn.className = "px-4 py-3 text-slate-400 hover:text-white transition flex items-center gap-2 shrink-0";
+            });
+
+            // Show selected tab & active style
+            document.getElementById(`tab-content-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            if (activeBtn) activeBtn.className = "px-4 py-3 tab-active transition flex items-center gap-2 shrink-0";
+        }
+
+        function switchFileAndTab(fileKey) {
+            switchTab('code');
+            switchFile(fileKey);
+        }
+
+        function copyCurrentCode() {
+            const codeText = projectFiles[currentFileKey].code;
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const toast = document.getElementById('copy-toast');
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 2000);
+        }
+    </script>
+</body>
+</html>
